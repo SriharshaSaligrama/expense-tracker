@@ -10,7 +10,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         ResendOTP,
         Password<DataModel>({
             id: "password-custom",
-            profile(params, _ctx) {
+            profile(params,) {
                 return {
                     email: params.email as string,
                     name: params.name as string,

@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
+import { ComponentProps } from "react";
 
-function FormErrorMessage({ className, children, ...props }: React.ComponentProps<"p">) {
+function FormErrorMessage({ className, children, ...props }: ComponentProps<"p">) {
     return (
         <p
             className={cn("text-xs font-medium text-destructive", className)}

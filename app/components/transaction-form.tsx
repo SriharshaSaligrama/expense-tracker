@@ -25,31 +25,36 @@ export function TransactionForm({
     initialValues,
     id,
     page,
-    search: searchStr,
+    search,
     type,
-    date: filterDate,
+    date: queryDate,
 }: {
     mode?: "add" | "edit",
-    initialValues?: any,
+    initialValues?: {
+        name: string,
+        amount: number,
+        type: string,
+        date: string,
+        description: string,
+    },
     id?: string,
-    page?: number,
+    page: number,
     search?: string,
-    type?: string,
+    type: string,
     date?: string,
 }) {
     const navigate = useNavigate();
     const createTransaction = useMutation(api.transactions.create);
     const updateTransaction = useMutation(api.transactions.update);
-    const [date, setDate] = useState<Date | undefined>(initialValues?.date ? new Date(initialValues.date) : undefined);
+    const [date, setDate] = useState<Date | undefined>(initialValues?.date ? new Date(initialValues.date) : queryDate ? new Date(queryDate) : undefined);
     const initialState = { error: "", success: false };
 
     async function handleForm(_prevState: typeof initialState, formData: FormData) {
         // Get latest filters from the current URL (not just from props)
-        const url = new URL(window.location.href);
-        const pageParam = url.searchParams.get('page') ?? '1';
-        const searchParam = url.searchParams.get('search') ?? '';
-        const typeParam = url.searchParams.get('type') ?? 'all';
-        const dateParam = url.searchParams.get('date') ?? '';
+        const pageParam = page ?? 1;
+        const searchParam = search ?? '';
+        const typeParam = type ?? 'all';
+        const dateParam = queryDate ?? '';
         const values = {
             name: (formData.get("name") as string) ?? "",
             amount: formData.get("amount") ?? "",
@@ -68,28 +73,27 @@ export function TransactionForm({
                 await createTransaction(parsed.data);
             }
             // Redirect using the actual current URL filter state
-            // window.location.href = `/transactions?page=${encodeURIComponent(pageParam)}&search=${encodeURIComponent(searchParam)}&type=${encodeURIComponent(typeParam)}${dateParam ? `&date=${encodeURIComponent(dateParam)}` : ""}`;
             const searchParams: SearchParams = {
-                page: +encodeURIComponent(pageParam),
+                page: pageParam,
                 type: typeParam,
             }
             if (searchParam) {
-                searchParams.search = encodeURIComponent(searchParam);
+                searchParams.search = searchParam;
             }
             if (dateParam) {
-                searchParams.date = encodeURIComponent(dateParam);
+                searchParams.date = dateParam;
             }
             navigate({
                 to: '/transactions',
                 search: {
-                    page: +pageParam,
+                    page: pageParam,
                     search: searchParam,
                     type: typeParam,
                     date: dateParam || '',
                 },
             })
             return { error: "", success: true };
-        } catch (err: any) {
+        } catch (err) {
             return { error: err.message || "Failed to save transaction", success: false };
         }
     }

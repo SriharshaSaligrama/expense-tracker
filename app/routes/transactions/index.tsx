@@ -1,22 +1,21 @@
+import { useState, useRef, useEffect } from "react";
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Pencil, Trash } from 'lucide-react'
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useRef, useEffect } from "react";
-import { format } from "date-fns";
-import { useSearch } from '@tanstack/react-router';
+import type { Id } from "../../../convex/_generated/dataModel";
 
 export const Route = createFileRoute('/transactions/')({
     validateSearch: (search) => ({
         page: search.page ? Number(search.page) : 1,
-        search: typeof search.search === 'string' ? search.search : '',
+        search: typeof search.search === 'string' ? search.search : undefined,
         type: typeof search.type === 'string' ? search.type : 'all',
         date: typeof search.date === 'string' ? search.date : undefined,
     }),
@@ -25,7 +24,8 @@ export const Route = createFileRoute('/transactions/')({
 
 function useDebouncedValue<T>(value: T, delay: number): T {
     const [debounced, setDebounced] = useState(value);
-    const timeout = useRef<NodeJS.Timeout | null>(null);
+    // Use browser's setTimeout type for compatibility
+    const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
         if (timeout.current) clearTimeout(timeout.current);
         timeout.current = setTimeout(() => setDebounced(value), delay);
@@ -40,7 +40,7 @@ function RouteComponent() {
     const navigate = useNavigate({ from: '/transactions' });
     const { page: pageParam, search: searchStr, type: typeParam, date: dateParam } = Route.useSearch();
     const [page, setPage] = useState(Number(pageParam) || 1);
-    const pageSize = 10;
+    const pageSize = 3;
     const [search, setSearch] = useState(searchStr || "");
     const debouncedSearch = useDebouncedValue(search, 300);
     const [type, setType] = useState(typeParam || "all");
@@ -59,7 +59,7 @@ function RouteComponent() {
             to: '/transactions',
             search: {
                 page,
-                search,
+                search: search.trim() ? search : undefined,
                 type,
                 date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
             },
@@ -83,7 +83,7 @@ function RouteComponent() {
 
     async function handleDelete() {
         if (!deleteId) return;
-        await deleteTransaction({ id: deleteId as any });
+        await deleteTransaction({ id: deleteId as Id<"transactions"> });
         setDeleteId(null);
     }
 

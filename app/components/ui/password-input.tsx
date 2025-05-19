@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-function PasswordInput({ className, type, ...props }: React.ComponentProps<"input">) {
+function PasswordInput({ className, ...props }: React.ComponentProps<"input">) {
     const [showPassword, setShowPassword] = React.useState(false)
     const disabled = props.disabled
 

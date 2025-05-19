@@ -5,6 +5,7 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexProvider } from "convex/react";
 import { routeTree } from './routeTree.gen'
+import { ReactNode } from 'react';
 
 export function createRouter() {
     const CONVEX_URL = import.meta.env.VITE_CONVEX_URL as string;
@@ -32,7 +33,7 @@ export function createRouter() {
             scrollRestoration: true,
             defaultPreload: "intent",
             context: { queryClient },
-            Wrap: ({ children }) => (
+            Wrap: ({ children }: { children: ReactNode }) => (
                 <ConvexAuthProvider client={convexQueryClient.convexClient}>
                     <ConvexProvider client={convexQueryClient.convexClient}>
                         {children}

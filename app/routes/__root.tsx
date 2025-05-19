@@ -1,14 +1,14 @@
-import type { ReactNode } from 'react'
+import React from 'react';
 import {
     Outlet,
     createRootRouteWithContext,
     HeadContent,
     Scripts,
     useNavigate,
-} from '@tanstack/react-router'
+} from '@tanstack/react-router';
 import { QueryClient } from "@tanstack/react-query";
 
-import appCss from "@/styles/app.css?url"
+import appCss from "@/styles/app.css?url";
 import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignInWithGoogle } from '@/components/auth/sign-in-with-google';
@@ -45,21 +45,21 @@ export const Route = createRootRouteWithContext<{
         ],
     }),
     component: RootComponent,
-})
+});
 
 function RootComponent() {
     return (
         <RootDocument>
             <Outlet />
         </RootDocument>
-    )
+    );
 }
 
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-    const navigate = useNavigate()
+function RootDocument({ children }: Readonly<{ children: React.ReactNode }>) {
+    const navigate = useNavigate();
 
     return (
-        <html>
+        <html lang="en">
             <head>
                 <HeadContent />
             </head>
@@ -92,12 +92,17 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
                                 <Breadcrumb>
                                     <BreadcrumbList>
                                         <BreadcrumbItem>
-                                            <BreadcrumbPage className='cursor-pointer' onClick={() => navigate({ to: "/" })}><h3 className='text-md font-bold flex items-center gap-2'><BadgeIndianRupee />Expense Tracker</h3></BreadcrumbPage>
+                                            <BreadcrumbPage className="cursor-pointer" onClick={() => navigate({ to: "/" })}>
+                                                <h3 className="text-md font-bold flex items-center gap-2">
+                                                    <BadgeIndianRupee />
+                                                    Expense Tracker
+                                                </h3>
+                                            </BreadcrumbPage>
                                         </BreadcrumbItem>
                                     </BreadcrumbList>
                                 </Breadcrumb>
                             </header>
-                            <main className='flex flex-col p-4'>
+                            <main className="flex flex-col p-4">
                                 {children}
                             </main>
                         </SidebarInset>
@@ -106,5 +111,5 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
                 <Scripts />
             </body>
         </html>
-    )
+    );
 }

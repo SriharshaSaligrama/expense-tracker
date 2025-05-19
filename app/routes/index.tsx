@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { api } from 'convex/_generated/api';
 import { convexQuery } from '@convex-dev/react-query';
@@ -17,7 +17,6 @@ function getMonthName(dateStr: string) {
 }
 
 function Home() {
-
     const { data: transactionsData } = useSuspenseQuery(convexQuery(api.transactions.list, { page: 1, pageSize: 1000, type: 'all' }));
     const transactions = transactionsData?.items ?? [];
 

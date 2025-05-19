@@ -1,4 +1,6 @@
-export function GoogleLogo(props: React.HTMLAttributes<SVGElement>) {
+import { HTMLAttributes } from "react";
+
+export function GoogleLogo(props: HTMLAttributes<SVGElement>) {
     return (
         <svg viewBox="0 0 24 24" {...props}>
             <path
