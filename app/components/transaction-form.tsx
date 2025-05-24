@@ -13,21 +13,14 @@ import { useMutation } from "convex/react";
 import { useNavigate } from '@tanstack/react-router';
 import { Id } from "convex/_generated/dataModel";
 
-type SearchParams = {
-    page: number,
-    search?: string,
-    type: string,
-    date?: string,
-}
-
 export function TransactionForm({
     mode = "add",
     initialValues,
     id,
-    page,
     search,
     type,
     date: queryDate,
+    cursor,
 }: {
     mode?: "add" | "edit",
     initialValues?: {
@@ -38,10 +31,10 @@ export function TransactionForm({
         description: string,
     },
     id?: string,
-    page: number,
     search?: string,
     type: string,
     date?: string,
+    cursor?: string,
 }) {
     const navigate = useNavigate();
     const createTransaction = useMutation(api.transactions.create);
@@ -50,11 +43,6 @@ export function TransactionForm({
     const initialState = { error: "", success: false };
 
     async function handleForm(_prevState: typeof initialState, formData: FormData) {
-        // Get latest filters from the current URL (not just from props)
-        const pageParam = page ?? 1;
-        const searchParam = search ?? '';
-        const typeParam = type ?? 'all';
-        const dateParam = queryDate ?? '';
         const values = {
             name: (formData.get("name") as string) ?? "",
             amount: formData.get("amount") ?? "",
@@ -72,26 +60,16 @@ export function TransactionForm({
             } else {
                 await createTransaction(parsed.data);
             }
-            // Redirect using the actual current URL filter state
-            const searchParams: SearchParams = {
-                page: pageParam,
-                type: typeParam,
-            }
-            if (searchParam) {
-                searchParams.search = searchParam;
-            }
-            if (dateParam) {
-                searchParams.date = dateParam;
-            }
+
             navigate({
                 to: '/transactions',
                 search: {
-                    page: pageParam,
-                    search: searchParam,
-                    type: typeParam,
-                    date: dateParam || '',
+                    search,
+                    type,
+                    date: queryDate,
+                    cursor,
                 },
-            })
+            });
             return { error: "", success: true };
         } catch (err) {
             return { error: err.message || "Failed to save transaction", success: false };

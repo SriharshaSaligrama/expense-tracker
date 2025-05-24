@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -14,10 +14,10 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 export const Route = createFileRoute('/transactions/')({
     validateSearch: (search) => ({
-        page: search.page ? Number(search.page) : 1,
         search: typeof search.search === 'string' ? search.search : undefined,
         type: typeof search.type === 'string' ? search.type : 'all',
         date: typeof search.date === 'string' ? search.date : undefined,
+        cursor: typeof search.cursor === 'string' ? search.cursor : undefined,
     }),
     component: RouteComponent,
 })
@@ -38,8 +38,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 function RouteComponent() {
     const navigate = useNavigate({ from: '/transactions' });
-    const { page: pageParam, search: searchStr, type: typeParam, date: dateParam } = Route.useSearch();
-    const [page, setPage] = useState(Number(pageParam) || 1);
+    const { search: searchStr, type: typeParam, date: dateParam, cursor: routeCursor } = Route.useSearch();
     const pageSize = 3;
     const [search, setSearch] = useState(searchStr || "");
     const debouncedSearch = useDebouncedValue(search, 300);
@@ -48,38 +47,102 @@ function RouteComponent() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const deleteTransaction = useMutation(api.transactions.remove);
 
-    useEffect(() => {
-        setSearch(searchStr || "");
-        setType(typeParam || "all");
-        setDate(dateParam ? new Date(dateParam) : undefined);
-    }, [searchStr, typeParam, dateParam]);
+    // Cursor-based pagination state
+    const [prevCursors, setPrevCursors] = useState<string[]>([]); // for Previous
 
-    useEffect(() => {
-        navigate({
-            to: '/transactions',
-            search: {
-                page,
-                search: search.trim() ? search : undefined,
-                type,
-                date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
-            },
-            replace: true,
-        });
-    }, [page, search, type, date]);
-
+    // Fetch transactions with cursor
     const transactions = useQuery(api.transactions.list, {
-        page,
         pageSize,
         search: debouncedSearch.trim() ? debouncedSearch : undefined,
         type,
         date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
+        cursor: routeCursor,
     });
+
     const isLoading = transactions === undefined;
     const error = null;
     const errorMessage = typeof error === 'string' ? error : error ? 'Failed to load transactions.' : null;
-    const total = transactions?.total ?? 0;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const items = transactions?.items ?? [];
+    const isDone = transactions?.isDone;
+    const nextCursor = transactions?.cursor;
+
+    function handleNext() {
+        if (nextCursor) {
+            if (routeCursor) {
+                setPrevCursors(prev => [...prev, routeCursor]);
+            }
+            navigate({
+                search: {
+                    search: search.trim() || undefined,
+                    type,
+                    date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
+                    cursor: nextCursor
+                }
+            });
+        }
+    }
+
+    function handlePrev() {
+        if (prevCursors.length > 0) {
+            setPrevCursors(prev => {
+                const newPrev = [...prev];
+                const prevCursor = newPrev.pop();
+                navigate({
+                    search: {
+                        search: search.trim() || undefined,
+                        type,
+                        date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
+                        cursor: prevCursor
+                    }
+                });
+                return newPrev;
+            });
+        } else {
+            navigate({
+                search: {
+                    search: search.trim() || undefined,
+                    type,
+                    date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
+                    cursor: undefined
+                }
+            });
+            setPrevCursors([]);
+        }
+    }
+
+    // Single effect to handle all URL updates and cursor state
+    useEffect(() => {
+        const currentSearch = searchStr;
+        const currentType = typeParam;
+        const currentDate = dateParam;
+        const currentCursor = routeCursor;
+
+        const searchChanged = search.trim() !== currentSearch;
+        const typeChanged = type !== currentType;
+        const dateChanged = date?.toISOString() !== currentDate;
+        const shouldResetCursor = (
+            searchChanged || // Only reset when search is complete
+            typeChanged ||
+            dateChanged
+        );
+        const cursorChanged = !shouldResetCursor && nextCursor !== currentCursor;
+
+        if (searchChanged || typeChanged || dateChanged || cursorChanged) {
+            navigate({
+                search: {
+                    search: search.trim() || undefined,
+                    type,
+                    date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
+                    cursor: shouldResetCursor ? undefined : nextCursor || currentCursor
+                },
+                replace: true
+            });
+
+            if (shouldResetCursor) {
+                setPrevCursors([]);
+            }
+        }
+    }, [search, type]);
 
     async function handleDelete() {
         if (!deleteId) return;
@@ -89,8 +152,8 @@ function RouteComponent() {
 
     return <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
-            <Input id="search" placeholder='Search by name, description or amount' value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            <Select value={type} onValueChange={val => { setType(val); setPage(1); }}>
+            <Input id="search" placeholder='Search by name, description or amount' value={search} onChange={e => setSearch(e.target.value)} />
+            <Select value={type} onValueChange={val => setType(val)}>
                 <SelectTrigger className="w-[280px]">
                     <SelectValue placeholder="Select Transaction Type" />
                 </SelectTrigger>
@@ -100,13 +163,12 @@ function RouteComponent() {
                     <SelectItem value="expense">Expense</SelectItem>
                 </SelectContent>
             </Select>
-            <DatePicker value={date} onChange={d => { setDate(d); setPage(1); }} datePlaceholder="Select date" />
+            <DatePicker value={date} onChange={d => setDate(d)} datePlaceholder="Select date" />
             {date && (
-                <Button variant="ghost" onClick={() => { setDate(undefined); setPage(1); }}>
+                <Button variant="ghost" onClick={() => setDate(undefined)}>
                     Clear Date
                 </Button>
-            )}
-            <Button variant="default" onClick={() => navigate({ to: '/transactions/add', search: { page, search, type, date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined } })}>
+            )}            <Button variant="default" onClick={() => navigate({ to: '/transactions/add', search: { cursor: routeCursor ? encodeURIComponent(routeCursor) : undefined, search, type, date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined } })}>
                 Add Transaction
             </Button>
         </div>
@@ -145,10 +207,9 @@ function RouteComponent() {
                         <TableCell>{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</TableCell>
                         <TableCell>{new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</TableCell>
                         <TableCell>{item.description}</TableCell>
-                        <TableCell className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="icon" onClick={() => navigate({ to: `/transactions/edit/${item._id}`, search: { page, search, type, date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined } })}>
-                                <Pencil />
-                            </Button>
+                        <TableCell className="flex items-center justify-end gap-2">                            <Button variant="outline" size="icon" onClick={() => navigate({ to: `/transactions/edit/${item._id}`, search: { cursor: routeCursor ? encodeURIComponent(routeCursor) : undefined, search, type, date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined } })}>
+                            <Pencil />
+                        </Button>
                             <Dialog open={deleteId === item._id} onOpenChange={open => setDeleteId(open ? item._id : null)}>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive" size="icon">
@@ -176,17 +237,10 @@ function RouteComponent() {
         <Pagination>
             <PaginationContent>
                 <PaginationItem>
-                    <PaginationPrevious href="#" onClick={() => setPage((p) => Math.max(1, p - 1))} aria-disabled={page === 1} />
+                    <PaginationPrevious href="#" onClick={handlePrev} aria-disabled={prevCursors.length === 0} />
                 </PaginationItem>
-                {[...Array(totalPages)].map((_, i) => (
-                    <PaginationItem key={i}>
-                        <PaginationLink href="#" isActive={page === i + 1} onClick={() => setPage(i + 1)}>
-                            {i + 1}
-                        </PaginationLink>
-                    </PaginationItem>
-                ))}
                 <PaginationItem>
-                    <PaginationNext href="#" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} aria-disabled={page === totalPages} />
+                    <PaginationNext href="#" onClick={handleNext} aria-disabled={isDone} />
                 </PaginationItem>
             </PaginationContent>
         </Pagination>

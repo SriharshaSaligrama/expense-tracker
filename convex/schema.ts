@@ -12,14 +12,18 @@ const schema = defineSchema({
         description: v.string(),
         user: v.id("users"),
     })
-    // {
-    //     name: "string",
-    //     amount: "number",
-    //     type: "string",
-    //     date: "date",
-    //     description: "string",
-    // },
-    // Your other tables...
+        .index("by_user", ["user"])
+        .index("by_user_date", ["user", "date"])
+        .index("by_user_type_date", ["user", "type", "date"])
+        // Search indexes for efficient text search
+        .searchIndex("search_name", {
+            searchField: "name",
+            filterFields: ["user", "type", "date"]
+        })
+        .searchIndex("search_description", {
+            searchField: "description",
+            filterFields: ["user", "type", "date"]
+        })
 });
 
 export default schema;

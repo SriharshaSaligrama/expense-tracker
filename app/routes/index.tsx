@@ -17,7 +17,7 @@ function getMonthName(dateStr: string) {
 }
 
 function Home() {
-    const { data: transactionsData } = useSuspenseQuery(convexQuery(api.transactions.list, { page: 1, pageSize: 1000, type: 'all' }));
+    const { data: transactionsData } = useSuspenseQuery(convexQuery(api.transactions.list, { pageSize: 1000, type: 'all' }));
     const transactions = transactionsData?.items ?? [];
 
     // Analytics calculations
