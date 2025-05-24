@@ -39,7 +39,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 function RouteComponent() {
     const navigate = useNavigate({ from: '/transactions' });
     const { search: searchStr, type: typeParam, date: dateParam, cursor: routeCursor } = Route.useSearch();
-    const pageSize = 3;
+    const pageSize = 10;
     const [search, setSearch] = useState(searchStr || "");
     const debouncedSearch = useDebouncedValue(search, 300);
     const [type, setType] = useState(typeParam || "all");
