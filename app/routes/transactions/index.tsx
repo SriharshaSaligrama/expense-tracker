@@ -112,28 +112,23 @@ function RouteComponent() {
 
     // Single effect to handle all URL updates and cursor state
     useEffect(() => {
-        const currentSearch = searchStr;
-        const currentType = typeParam;
-        const currentDate = dateParam;
-        const currentCursor = routeCursor;
-
-        const searchChanged = search.trim() !== currentSearch;
-        const typeChanged = type !== currentType;
-        const dateChanged = date?.toISOString() !== currentDate;
+        const searchChanged = debouncedSearch.trim() !== searchStr;
+        const typeChanged = type !== typeParam;
+        const dateChanged = date?.toISOString() !== dateParam;
         const shouldResetCursor = (
-            searchChanged || // Only reset when search is complete
+            searchChanged ||
             typeChanged ||
             dateChanged
         );
-        const cursorChanged = !shouldResetCursor && nextCursor !== currentCursor;
+        const cursorChanged = !shouldResetCursor && nextCursor !== routeCursor;
 
         if (searchChanged || typeChanged || dateChanged || cursorChanged) {
             navigate({
                 search: {
-                    search: search.trim() || undefined,
+                    search: debouncedSearch.trim() || undefined,
                     type,
                     date: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : undefined,
-                    cursor: shouldResetCursor ? undefined : nextCursor || currentCursor
+                    cursor: shouldResetCursor ? undefined : nextCursor || routeCursor
                 },
                 replace: true
             });
@@ -142,7 +137,7 @@ function RouteComponent() {
                 setPrevCursors([]);
             }
         }
-    }, [search, type]);
+    }, [debouncedSearch, type]);
 
     async function handleDelete() {
         if (!deleteId) return;
