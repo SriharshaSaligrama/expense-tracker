@@ -1,6 +1,24 @@
 import { mutation, query } from "../convex/_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Query } from "convex/server";
+import { Doc } from "./_generated/dataModel";
+
+type TransactionTableInfo = {
+    document: Doc<"transactions">;
+    fieldPaths: string;
+    indexes: {
+        by_user_type_date: ["user", "type", "date", "_creationTime"];
+        by_user_date: ["user", "date", "_creationTime"];
+    };
+    searchIndexes: {
+        search_blob: {
+            searchField: "search_blob";
+            filterFields: string; // string[];
+        };
+    };
+    vectorIndexes: Record<string, never>;
+};
 
 export const create = mutation({
     args: {
@@ -23,75 +41,65 @@ export const create = mutation({
 
 export const list = query({
     args: {
-        pageSize: v.number(),
         search: v.optional(v.string()),
-        type: v.string(),
-        date: v.optional(v.string()),
-        cursor: v.optional(v.string()),
+        type: v.optional(v.string()), // "income", "expense", or "all"
+        startDate: v.optional(v.string()),
+        endDate: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
-        const pageSize = args.pageSize ?? 10;
-
-        const baseQuery = ctx.db
-            .query("transactions")
-            .withIndex("by_user")
-            .filter(q => q.eq(q.field("user"), userId));
-
-        // Add type and date filters if present
-        let filtered = baseQuery;
-        if (args.type && args.type !== "all") {
-            filtered = filtered.filter(q => q.eq(q.field("type"), args.type));
-        }
-        if (args.date) {
-            filtered = filtered.filter(q => q.eq(q.field("date"), args.date));
-        }
-
+        // --- SEARCH MODE ---
         if (args.search?.trim()) {
-            const search = args.search.trim();
+            let searchQuery = ctx.db
+                .query("transactions")
+                .withSearchIndex("search_blob", q =>
+                    q.search("search_blob", args.search!.trim()).eq("user", userId)
+                );
 
-            // Collect all matching records for text search
-            const results = await filtered.collect();
+            if (args.type && args.type !== "all") {
+                searchQuery = searchQuery.filter(q => q.eq(q.field("type"), args.type));
+            }
+            if (args.startDate) {
+                searchQuery = searchQuery.filter(q => q.gte(q.field("date"), args.startDate as string));
+            }
+            if (args.endDate) {
+                searchQuery = searchQuery.filter(q => q.lte(q.field("date"), args.endDate as string));
+            }
 
-            // Perform text search on collected results
-            const searchResults = results.filter(item => {
-                const searchableText = `${item.name} ${item.description}`.toLowerCase();
-                if (searchableText.includes(search.toLowerCase())) {
-                    return true;
-                }
-                // Search in amount if the search term is numeric
-                if (search.match(/^\d+$/)) {
-                    return item.amount.toString().includes(search);
-                }
-                return false;
-            });
-
-            // Sort by creation time (newest first)
-            searchResults.sort((a, b) => b._creationTime - a._creationTime);
-
-            // Manual pagination for search results
-            const startIndex = args.cursor ? parseInt(args.cursor) : 0;
-            const endIndex = startIndex + pageSize;
-            const paginatedResults = searchResults.slice(startIndex, endIndex);
-
-            return {
-                items: paginatedResults,
-                cursor: endIndex < searchResults.length ? endIndex.toString() : undefined,
-                isDone: endIndex >= searchResults.length
-            };
+            const allResults = await searchQuery.collect();
+            return allResults
         }
 
-        // If no search, use normal cursor-based pagination
-        const { page, isDone, continueCursor } = await filtered
-            .order("desc")
-            .paginate({
-                cursor: args.cursor ?? null,
-                numItems: pageSize,
-            });
+        // --- INDEXED MODE ---
+        let baseQuery: Query<TransactionTableInfo>;
+        if (args.type && args.type !== "all") {
+            baseQuery = ctx.db
+                .query("transactions")
+                .withIndex("by_user_type_date", q =>
+                    q.eq("user", userId).eq("type", args.type as string)
+                );
+        } else {
+            baseQuery = ctx.db
+                .query("transactions")
+                .withIndex("by_user_date", q =>
+                    q.eq("user", userId)
+                );
+        }
 
-        return { items: page, cursor: continueCursor, isDone };
+        if (args.startDate) {
+            baseQuery = baseQuery.filter(q => q.gte(q.field("date"), args.startDate as string));
+        }
+        if (args.endDate) {
+            baseQuery = baseQuery.filter(q => q.lte(q.field("date"), args.endDate as string));
+        }
+
+        const allResults = await baseQuery
+            .order("desc")
+            .collect();
+
+        return allResults;
     },
 });
 

@@ -6,12 +6,13 @@ export const Route = createFileRoute('/transactions/add')({
         search: typeof search.search === 'string' ? search.search : undefined,
         type: typeof search.type === 'string' ? search.type : 'all',
         date: typeof search.date === 'string' ? search.date : undefined,
-        cursor: typeof search.cursor === 'string' ? search.cursor : undefined,
+        startDate: typeof search.startDate === 'string' ? search.startDate : undefined,
+        endDate: typeof search.endDate === 'string' ? search.endDate : undefined,
     }),
     component: RouteComponent,
 })
 
 function RouteComponent() {
-    const { search: searchStr, type, date, cursor } = Route.useSearch();
-    return <TransactionForm mode="add" search={searchStr} type={type} date={date} cursor={cursor} />;
+    const { search: searchStr, type, date } = Route.useSearch();
+    return <TransactionForm mode="add" search={searchStr} type={type} date={date} />;
 }

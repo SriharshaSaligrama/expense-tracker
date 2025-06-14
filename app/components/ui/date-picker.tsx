@@ -10,7 +10,23 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function DatePicker({ className, datePlaceholder = 'Select date', value, onChange }: { className?: string, datePlaceholder?: string, value?: Date, onChange?: (date: Date | undefined) => void }) {
+export function DatePicker({
+    className,
+    datePlaceholder = 'Select date',
+    value,
+    onChange,
+    minDate = undefined, // January 1, 2000
+    maxDate = new Date(),
+    defaultMonth = undefined, // Default to current month if not provided
+}: {
+    className?: string
+    datePlaceholder?: string
+    value?: Date
+    onChange?: (date: Date | undefined) => void
+    minDate?: Date
+    maxDate?: Date
+    defaultMonth?: Date // Default to current month if not provided
+}) {
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -31,7 +47,9 @@ export function DatePicker({ className, datePlaceholder = 'Select date', value, 
                     mode="single"
                     selected={value}
                     onSelect={onChange}
+                    disabled={(date) => date > maxDate || (minDate ? date < minDate : false)}
                     initialFocus
+                    defaultMonth={defaultMonth || value}
                 />
             </PopoverContent>
         </Popover>

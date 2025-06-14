@@ -10,8 +10,11 @@ import { useActionState, useState } from "react";
 import { transactionSchema } from "@/hooks/transaction-schema";
 import { api } from "../../convex/_generated/api";
 import { useMutation } from "convex/react";
-import { useNavigate } from '@tanstack/react-router';
+import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Id } from "convex/_generated/dataModel";
+
+const addRouteApi = getRouteApi('/transactions/add');
+const editRouteApi = getRouteApi('/transactions/edit/$id');
 
 export function TransactionForm({
     mode = "add",
@@ -20,7 +23,6 @@ export function TransactionForm({
     search,
     type,
     date: queryDate,
-    cursor,
 }: {
     mode?: "add" | "edit",
     initialValues?: {
@@ -34,8 +36,8 @@ export function TransactionForm({
     search?: string,
     type: string,
     date?: string,
-    cursor?: string,
 }) {
+    const { startDate, endDate } = mode === "edit" ? editRouteApi.useSearch() : addRouteApi.useSearch();
     const navigate = useNavigate();
     const createTransaction = useMutation(api.transactions.create);
     const updateTransaction = useMutation(api.transactions.update);
@@ -66,8 +68,8 @@ export function TransactionForm({
                 search: {
                     search,
                     type,
-                    date: queryDate,
-                    cursor,
+                    startDate,
+                    endDate,
                 },
             });
             return { error: "", success: true };

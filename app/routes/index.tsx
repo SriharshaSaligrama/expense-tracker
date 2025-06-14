@@ -17,8 +17,8 @@ function getMonthName(dateStr: string) {
 }
 
 function Home() {
-    const { data: transactionsData } = useSuspenseQuery(convexQuery(api.transactions.list, { pageSize: 1000, type: 'all' }));
-    const transactions = transactionsData?.items ?? [];
+    const { data: transactionsData } = useSuspenseQuery(convexQuery(api.transactions.list, { type: 'all' }));
+    const transactions = transactionsData ?? [];
 
     // Analytics calculations
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);

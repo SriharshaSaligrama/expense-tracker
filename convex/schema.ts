@@ -7,23 +7,19 @@ const schema = defineSchema({
     transactions: defineTable({
         name: v.string(),
         amount: v.number(),
-        type: v.string(),
+        type: v.string(), // "income" or "expense"
         date: v.string(),
         description: v.string(),
         user: v.id("users"),
+        search_blob: v.optional(v.string()), // <-- new field for multi-field search
     })
         .index("by_user", ["user"])
         .index("by_user_date", ["user", "date"])
         .index("by_user_type_date", ["user", "type", "date"])
-        // Search indexes for efficient text search
-        .searchIndex("search_name", {
-            searchField: "name",
-            filterFields: ["user", "type", "date"]
-        })
-        .searchIndex("search_description", {
-            searchField: "description",
-            filterFields: ["user", "type", "date"]
-        })
+        .searchIndex("search_blob", {
+            searchField: "search_blob",
+            filterFields: ["user", "type", "date"],
+        }),
 });
 
 export default schema;
