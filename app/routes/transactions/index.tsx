@@ -1,15 +1,17 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useTransition, useState, useCallback } from 'react';
-import { useQuery } from 'convex/react';
+import { useTransition, useState, useCallback, useEffect } from 'react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
-import { MoreVertical, X } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, X } from 'lucide-react';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -47,6 +49,21 @@ function RouteComponent() {
     const [searchValue, setSearchValue] = useState(searchInput ?? '');
     const [draftStartDate, setDraftStartDate] = useState<Date | undefined>(startDate ? new Date(startDate) : undefined);
     const [draftEndDate, setDraftEndDate] = useState<Date | undefined>(endDate ? new Date(endDate) : undefined);
+    const [deleteId, setDeleteId] = useState<Id<"transactions"> | null>(null);
+
+    const deleteTransaction = useMutation(api.transactions.remove);
+
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        await deleteTransaction({ id: deleteId });
+        setDeleteId(null);
+    };
+
+    // Sync local state with URL parameters
+    useEffect(() => {
+        setDraftStartDate(startDate ? new Date(startDate) : undefined);
+        setDraftEndDate(endDate ? new Date(endDate) : undefined);
+    }, [startDate, endDate]);
 
     const transactions = useQuery(api.transactions.list, {
         search: searchInput,
@@ -242,23 +259,26 @@ function RouteComponent() {
                                                         <MoreVertical className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">                                                    <DropdownMenuItem onClick={() => {
-                                                    navigate({
-                                                        to: '/transactions/edit/$id',
-                                                        params: { id: transaction._id },
-                                                        search: {
-                                                            search: searchInput,
-                                                            type,
-                                                            date: transaction.date,
-                                                            startDate,
-                                                            endDate,
-                                                        }
-                                                    });
-                                                }}>
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => null}>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem className='flex items-center justify-between' onClick={() => {
+                                                        navigate({
+                                                            to: '/transactions/edit/$id',
+                                                            params: { id: transaction._id },
+                                                            search: {
+                                                                search: searchInput,
+                                                                type,
+                                                                date: transaction.date,
+                                                                startDate,
+                                                                endDate,
+                                                            }
+                                                        });
+                                                    }}>
+                                                        Edit
+                                                        <Pencil className="h-4 w-4" />
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className='flex items-center justify-between text-destructive' onClick={() => setDeleteId(transaction._id as Id<"transactions">)}>
                                                         Delete
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -269,6 +289,21 @@ function RouteComponent() {
                         </Table>
                     </div>
                 )}
+
+                <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                    <DialogContent className="max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Are you sure to delete the transaction?</DialogTitle>
+                            <DialogDescription>
+                                This action cannot be undone. This will permanently remove this transaction data.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button type="button" variant="secondary" onClick={() => setDeleteId(null)}>Cancel</Button>
+                            <Button type="button" variant="destructive" onClick={handleDelete}>Delete</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );
