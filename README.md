@@ -6,7 +6,6 @@ This is a robust, user-specific expense tracker built with TanStack Router, Conv
 - User authentication (Convex Auth)
 - Add, edit, delete, and list transactions
 - Filter/search transactions by type, date, and text
-- Pagination
 - Analytics dashboard: income, expense, balance, monthly summary, pie chart, recent transactions
 - All queries and mutations are user-specific
 - Modern, responsive UI with shadcn/ui components
