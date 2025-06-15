@@ -1,11 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { api } from 'convex/_generated/api';
-import { convexQuery } from '@convex-dev/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useQuery } from 'convex/react';
+import { format } from 'date-fns';
 
 export const Route = createFileRoute('/')({
     component: Home,
@@ -16,18 +16,45 @@ function getMonthName(dateStr: string) {
     return d.toLocaleString('default', { month: 'short', year: 'numeric' });
 }
 
-function Home() {
-    const { data: transactionsData } = useSuspenseQuery(convexQuery(api.transactions.list, { type: 'all' }));
-    const transactions = transactionsData ?? [];
+const dateRange = {
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    endDate: new Date().toISOString()
+};
 
-    // Analytics calculations
-    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const balance = totalIncome - totalExpense;
+const dateRange3Months = {
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 2, 1).toISOString(),
+    endDate: new Date().toISOString()
+};
+
+function Home() {
+    const navigate = useNavigate();
+
+    const statistics = useQuery(api.transactions.stats, {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+    });
+
+    const totalIncome = statistics?.totalIncomeAmount ?? 0;
+    const totalExpense = statistics?.totalExpenseAmount ?? 0;
+    const balance = statistics?.balanceAmount ?? 0;
+
+    const recent5data = useQuery(api.transactions.listRecent5, {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+    });
+
+    const recent5Transactions = recent5data ?? [];
+
+    const transactions3MonthsData = useQuery(api.transactions.list, {
+        startDate: dateRange3Months.startDate,
+        endDate: dateRange3Months.endDate
+    });
+
+    const transactions3Months = transactions3MonthsData ?? [];
 
     // Monthly summary
     const monthlyMap: Record<string, { income: number, expense: number }> = {};
-    transactions.forEach(t => {
+    transactions3Months.forEach(t => {
         const month = getMonthName(t.date);
         if (!monthlyMap[month]) monthlyMap[month] = { income: 0, expense: 0 };
         if (t.type === 'income') monthlyMap[month].income += t.amount;
@@ -42,18 +69,16 @@ function Home() {
     ];
     const COLORS = ['#22c55e', '#ef4444'];
 
-    // Recent transactions
-    const recent = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
-
     return (
-        <div className="p-6 flex flex-col gap-8">
+        <div className=" flex flex-col gap-8">
+            <h6 className="text-xl font-bold">Stats this month - {format(dateRange.startDate, 'dd MMM yyyy')} to {format(dateRange.endDate, 'dd MMM yyyy')}</h6>
             <div className="flex flex-col md:flex-row gap-6">
                 <Card className="flex-1 bg-green-50">
                     <CardHeader>
                         <CardTitle className="text-green-700">Total Income</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-700">₹{totalIncome.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-green-700">₹{totalIncome}</div>
                     </CardContent>
                 </Card>
                 <Card className="flex-1 bg-red-50">
@@ -61,7 +86,7 @@ function Home() {
                         <CardTitle className="text-red-700">Total Expense</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-700">₹{totalExpense.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-red-700">₹{totalExpense}</div>
                     </CardContent>
                 </Card>
                 <Card className="flex-1 bg-blue-50">
@@ -69,7 +94,7 @@ function Home() {
                         <CardTitle className="text-blue-700">Balance</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-700">₹{balance.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-blue-700">₹{balance}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -77,7 +102,7 @@ function Home() {
             <div className="flex flex-col md:flex-row gap-6">
                 <Card className="flex-1">
                     <CardHeader>
-                        <CardTitle>Monthly Summary</CardTitle>
+                        <CardTitle>Monthly Summary (Last 3 months)</CardTitle>
                     </CardHeader>
                     <CardContent style={{ height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -113,7 +138,7 @@ function Home() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent Transactions</CardTitle>
+                    <CardTitle className='cursor-pointer hover:underline' onClick={() => navigate({ to: '/transactions' })}>Recent Transactions</CardTitle>
                 </CardHeader>
                 <Separator />
                 <CardContent>
@@ -128,12 +153,12 @@ function Home() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {recent.length === 0 && (
+                            {recent5Transactions.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={5} className="text-center text-muted-foreground">No transactions yet.</TableCell>
                                 </TableRow>
                             )}
-                            {recent.map((t) => (
+                            {recent5Transactions.map((t) => (
                                 <TableRow key={t._id}>
                                     <TableCell>{t.name}</TableCell>
                                     <TableCell>₹{t.amount}</TableCell>

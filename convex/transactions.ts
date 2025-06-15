@@ -31,6 +31,7 @@ export const create = mutation({
     handler: async (ctx, args) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
+
         return await ctx.db.insert("transactions", {
             ...args,
             description: args.description ?? "",
@@ -103,9 +104,70 @@ export const list = query({
     },
 });
 
+export const listRecent5 = query({
+    args: {
+        startDate: v.string(),
+        endDate: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        const recent5 = await ctx.db
+            .query("transactions")
+            .withIndex("by_user_date", q => q.eq("user", userId).gte("date", args.startDate).lte("date", args.endDate))
+            .order("desc")
+            .take(5)
+
+        return recent5;
+    }
+});
+
+export const stats = query({
+    args: {
+        startDate: v.string(),
+        endDate: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        const totalIncome = await ctx.db
+            .query("transactions")
+            .withIndex("by_user_type_date", q =>
+                q
+                    .eq("user", userId)
+                    .eq("type", "income")
+                    .gte("date", args.startDate)
+                    .lte("date", args.endDate)
+            )
+            .collect();
+
+        const totalExpense = await ctx.db
+            .query("transactions")
+            .withIndex("by_user_type_date", q =>
+                q
+                    .eq("user", userId)
+                    .eq("type", "expense")
+                    .gte("date", args.startDate)
+                    .lte("date", args.endDate)
+            )
+            .collect();
+
+        const totalIncomeAmount = totalIncome.reduce((sum, txn) => sum + txn.amount, 0);
+        const totalExpenseAmount = totalExpense.reduce((sum, txn) => sum + txn.amount, 0);
+        const balanceAmount = totalIncomeAmount - totalExpenseAmount;
+
+        return { totalIncomeAmount, totalExpenseAmount, balanceAmount };
+    }
+});
+
 export const remove = mutation({
     args: { id: v.id("transactions") },
     handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
         await ctx.db.delete(args.id);
         return true;
     },
@@ -121,6 +183,9 @@ export const update = mutation({
         description: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
         await ctx.db.patch(args.id, {
             name: args.name,
             amount: args.amount,
@@ -135,6 +200,9 @@ export const update = mutation({
 export const get = query({
     args: { id: v.id("transactions") },
     handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
         return await ctx.db.get(args.id);
     },
 });

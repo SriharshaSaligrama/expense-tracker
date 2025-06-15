@@ -42,19 +42,20 @@ export function TransactionForm({
     const createTransaction = useMutation(api.transactions.create);
     const updateTransaction = useMutation(api.transactions.update);
     const [date, setDate] = useState<Date | undefined>(initialValues?.date ? new Date(initialValues.date) : queryDate ? new Date(queryDate) : undefined);
-    const initialState = { error: "", success: false };
+    const initialState = { error: "", success: false, transaction: { ...initialValues } };
 
     async function handleForm(_prevState: typeof initialState, formData: FormData) {
         const values = {
             name: (formData.get("name") as string) ?? "",
-            amount: formData.get("amount") ?? "",
+            amount: Number(formData.get("amount") ?? ""),
             type: (formData.get("type") as string) ?? "",
             date: date ? date.toISOString() : (formData.get("date") as string) ?? "",
             description: (formData.get("description") as string) ?? "",
         };
+
         const parsed = transactionSchema.safeParse(values);
         if (!parsed.success) {
-            return { error: parsed.error.errors[0].message, success: false };
+            return { error: parsed.error.errors[0].message, success: false, transaction: values };
         }
         try {
             if (mode === "edit" && id) {
@@ -72,9 +73,9 @@ export function TransactionForm({
                     endDate,
                 },
             });
-            return { error: "", success: true };
+            return { error: "", success: true, transaction: parsed.data };
         } catch (err) {
-            return { error: err.message || "Failed to save transaction", success: false };
+            return { error: err.message || "Failed to save transaction", success: false, transaction: parsed.data || values };
         }
     }
 
@@ -89,11 +90,11 @@ export function TransactionForm({
             <CardContent>
                 <form action={formAction} className="flex flex-col gap-4">
                     <Label>Name</Label>
-                    <Input name="name" minLength={3} required defaultValue={initialValues?.name} />
+                    <Input name="name" minLength={3} required defaultValue={state.transaction.name} />
                     <Label>Amount</Label>
-                    <Input type="number" name="amount" min={1} required defaultValue={initialValues?.amount} />
+                    <Input type="number" name="amount" min={1} required defaultValue={state.transaction.amount} />
                     <Label>Transaction Type</Label>
-                    <Select name="type" required defaultValue={initialValues?.type}>
+                    <Select name="type" required defaultValue={state.transaction.type}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Transaction Type" />
                         </SelectTrigger>
@@ -105,7 +106,7 @@ export function TransactionForm({
                     <Label>Transaction Date</Label>
                     <DatePicker className="w-full" datePlaceholder="Select date" value={date} onChange={setDate} />
                     <Label>Description</Label>
-                    <Textarea name="description" defaultValue={initialValues?.description} />
+                    <Textarea name="description" defaultValue={state.transaction.description} />
                     {state.error && (
                         <div className="text-red-500 text-sm">{state.error}</div>
                     )}
