@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useTransition, useState, useCallback, useEffect } from 'react';
+import { useTransition, useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { debounce } from 'lodash';
 import { MoreVertical, Pencil, Trash2, X } from 'lucide-react';
 
 const formatCurrency = (amount: number) => {
@@ -45,7 +46,7 @@ export const Route = createFileRoute('/transactions/')({
 function RouteComponent() {
     const navigate = useNavigate();
     const { search: searchInput, type = 'all', startDate, endDate } = Route.useSearch();
-    const [, startTransition] = useTransition();
+    const [isPending, startTransition] = useTransition();
     const [searchValue, setSearchValue] = useState(searchInput ?? '');
     const [draftStartDate, setDraftStartDate] = useState<Date | undefined>(startDate ? new Date(startDate) : undefined);
     const [draftEndDate, setDraftEndDate] = useState<Date | undefined>(endDate ? new Date(endDate) : undefined);
@@ -59,11 +60,59 @@ function RouteComponent() {
         setDeleteId(null);
     };
 
-    // Sync local state with URL parameters
+    // Create a memoized debounced search function
+    const debouncedSearchNavigate = useMemo(
+        () =>
+            debounce((value: string) => {
+                startTransition(() => {
+                    navigate({
+                        to: '/transactions',
+                        search: (current) => ({
+                            ...current,
+                            search: value || undefined,
+                        }),
+                        replace: true
+                    });
+                });
+            }, 500),
+        [navigate]
+    );
+
     useEffect(() => {
         setDraftStartDate(startDate ? new Date(startDate) : undefined);
         setDraftEndDate(endDate ? new Date(endDate) : undefined);
     }, [startDate, endDate]);
+
+    // Cancel debounced search on unmount
+    useEffect(() => {
+
+        return () => {
+            debouncedSearchNavigate.cancel();
+        };
+    }, [debouncedSearchNavigate]);
+
+    const handleSearch = useCallback((value: string) => {
+        setSearchValue(value);
+        debouncedSearchNavigate(value.trim());
+    }, [debouncedSearchNavigate]);
+
+    const partialNavigate = useCallback((search: Partial<SearchParams> | ((current: SearchParams) => SearchParams)) => {
+        navigate({
+            to: '/transactions',
+            search,
+            replace: true
+        });
+    }, [navigate]);
+
+    const clearSearch = () => {
+        setSearchValue('');
+        startTransition(() => {
+            partialNavigate((current) => ({
+                ...current,
+                search: undefined,
+            }));
+        });
+    };
 
     const transactions = useQuery(api.transactions.list, {
         search: searchInput,
@@ -116,118 +165,103 @@ function RouteComponent() {
         }
     };
 
-    const partialNavigate = useCallback((search: Partial<SearchParams> | ((current: SearchParams) => SearchParams)) => {
-        navigate({
-            to: '/transactions',
-            search,
-            replace: true
-        });
-    }, [navigate]);
-
-    const handleSearch = useCallback((value: string) => {
-        const trimmedValue = value.trim();
-        setSearchValue(value);
-
-        startTransition(() => {
-            partialNavigate((current) => ({
-                ...current,
-                search: trimmedValue || undefined,
-            }));
-        });
-    }, [partialNavigate]);
-
-    const clearSearch = () => {
-        setSearchValue('');
-        startTransition(() => {
-            partialNavigate((current) => ({
-                ...current,
-                search: undefined,
-            }));
-        });
-    };
-
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Transactions (upto 31 days)</h1>
-                <Button onClick={() => navigate({
-                    to: '/transactions/add',
-                    search: {
-                        search: searchInput,
-                        type,
-                        date: undefined,
-                        startDate,
-                        endDate,
-                    }
-                })}>
+                <Button
+                    onClick={() => navigate({
+                        to: '/transactions/add',
+                        search: {
+                            search: searchInput,
+                            type,
+                            date: undefined,
+                            startDate,
+                            endDate,
+                        }
+                    })}
+                    disabled={isPending}
+                >
                     Add Transaction
                 </Button>
             </div>
 
             <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                    <Select
-                        value={type}
-                        onValueChange={(value) => updateSearchParams({ type: value })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="income">Income</SelectItem>
-                            <SelectItem value="expense">Expense</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <div className="flex items-center gap-2">
-                        <DatePicker
-                            value={draftStartDate}
-                            onChange={(date) => handleDateChange(date, undefined)}
-                            datePlaceholder="Start Date"
-                        />
-                        <span>to</span>
-                        <DatePicker
-                            value={draftEndDate}
-                            onChange={(date) => handleDateChange(undefined, date)}
-                            datePlaceholder="End Date"
-                            minDate={draftStartDate ?? initialDateRange.startDate}
-                            maxDate={draftStartDate
-                                ? new Date(Math.min(
-                                    new Date(draftStartDate.getTime() + 30 * 24 * 60 * 60 * 1000).getTime(),
-                                    today.getTime()
-                                ))
-                                : today
-                            }
-                            defaultMonth={draftStartDate
-                                ? new Date(draftStartDate.getTime() + 15 * 24 * 60 * 60 * 1000)
-                                : new Date()
-                            }
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-1">
-                        <div className="relative flex-1">
-                            <Input
-                                className="pr-12"
-                                placeholder="Search transactions by name or description..."
-                                value={searchValue}
-                                onChange={(e) => handleSearch(e.target.value)}
+                <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
+                    <h2 className="text-lg font-semibold leading-none tracking-tight mb-4 sm:hidden">
+                        Filters
+                    </h2>
+                    <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:gap-4">
+                        <Select
+                            value={type}
+                            onValueChange={(value) => updateSearchParams({ type: value })}
+                            disabled={isPending}                        >
+                            <SelectTrigger className="w-full sm:w-[150px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All</SelectItem>
+                                <SelectItem value="income">Income</SelectItem>
+                                <SelectItem value="expense">Expense</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                            <DatePicker
+                                value={draftStartDate}
+                                onChange={(date) => handleDateChange(date, undefined)}
+                                datePlaceholder="Start Date"
+                                disabled={isPending}
+                                className="w-full sm:w-auto"
                             />
-                            {searchValue && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                    onClick={clearSearch}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
+                            <span className="block sm:inline mx-auto sm:mx-0">to</span>
+                            <DatePicker
+                                value={draftEndDate}
+                                onChange={(date) => handleDateChange(undefined, date)}
+                                datePlaceholder="End Date"
+                                minDate={draftStartDate ?? initialDateRange.startDate}
+                                maxDate={draftStartDate
+                                    ? new Date(Math.min(
+                                        new Date(draftStartDate.getTime() + 30 * 24 * 60 * 60 * 1000).getTime(),
+                                        today.getTime()
+                                    ))
+                                    : today
+                                }
+                                defaultMonth={draftStartDate
+                                    ? new Date(draftStartDate.getTime() + 15 * 24 * 60 * 60 * 1000)
+                                    : new Date()
+                                }
+                                disabled={isPending}
+                                className="w-full sm:w-auto"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 w-full">
+                            <div className="relative flex-1">
+                                <Input
+                                    className="pr-12 w-full"
+                                    placeholder="Search transactions by name, description or amount"
+                                    value={searchValue}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    disabled={isPending}
+                                />
+                                {searchValue && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                        onClick={clearSearch}
+                                        disabled={isPending}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {transactions.length === 0 ? (
+                {isPending ? (
+                    <div className="text-center text-muted-foreground">Loading...</div>
+                ) : transactions.length === 0 ? (
                     <div className="text-center text-muted-foreground">No transactions found</div>
                 ) : (
                     <div className="rounded-md border">

@@ -15,9 +15,10 @@ export function DatePicker({
     datePlaceholder = 'Select date',
     value,
     onChange,
-    minDate = undefined, // January 1, 2000
+    minDate = undefined,
     maxDate = new Date(),
-    defaultMonth = undefined, // Default to current month if not provided
+    defaultMonth = undefined,
+    disabled = false,
 }: {
     className?: string
     datePlaceholder?: string
@@ -25,7 +26,8 @@ export function DatePicker({
     onChange?: (date: Date | undefined) => void
     minDate?: Date
     maxDate?: Date
-    defaultMonth?: Date // Default to current month if not provided
+    defaultMonth?: Date
+    disabled?: boolean
 }) {
     return (
         <Popover>
@@ -37,6 +39,7 @@ export function DatePicker({
                         !value && "text-muted-foreground",
                         className
                     )}
+                    disabled={disabled}
                 >
                     <CalendarIcon />
                     {value ? format(value, "PPP") : <span>{datePlaceholder}</span>}
