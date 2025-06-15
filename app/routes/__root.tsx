@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     Outlet,
     createRootRouteWithContext,
@@ -7,6 +7,8 @@ import {
     useNavigate,
 } from '@tanstack/react-router';
 import { QueryClient } from "@tanstack/react-query";
+import { BadgeIndianRupee } from 'lucide-react';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 
 import appCss from "@/styles/app.css?url";
 import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react';
@@ -18,8 +20,8 @@ import { SignInWithPassword } from '@/components/auth/sign-in-with-password';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
-import { BadgeIndianRupee } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { SignOut } from '@/components/auth/sign-out';
 
 export const Route = createRootRouteWithContext<{
     queryClient: QueryClient;
@@ -48,6 +50,14 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
+    useEffect(() => {
+        // Check if user prefers dark mode
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+        }
+    }, []);
+
     return (
         <RootDocument>
             <Outlet />
@@ -88,19 +98,24 @@ function RootDocument({ children }: Readonly<{ children: React.ReactNode }>) {
                         <SidebarInset>
                             <header className="sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
                                 <SidebarTrigger className="-ml-1 cursor-pointer" />
-                                <Separator orientation="vertical" className="mr-2 h-4" />
-                                <Breadcrumb>
-                                    <BreadcrumbList>
-                                        <BreadcrumbItem>
-                                            <BreadcrumbPage className="cursor-pointer" onClick={() => navigate({ to: "/" })}>
-                                                <h3 className="text-md font-bold flex items-center gap-2">
-                                                    <BadgeIndianRupee />
-                                                    Expense Tracker
-                                                </h3>
-                                            </BreadcrumbPage>
-                                        </BreadcrumbItem>
-                                    </BreadcrumbList>
-                                </Breadcrumb>
+                                <Separator orientation="vertical" className="mr-2 h-4" />                                <div className="flex-1">
+                                    <Breadcrumb>
+                                        <BreadcrumbList>
+                                            <BreadcrumbItem>
+                                                <BreadcrumbPage className="cursor-pointer" onClick={() => navigate({ to: "/" })}>
+                                                    <h3 className="text-md font-bold flex items-center gap-2">
+                                                        <BadgeIndianRupee />
+                                                        Expense Tracker
+                                                    </h3>
+                                                </BreadcrumbPage>
+                                            </BreadcrumbItem>
+                                        </BreadcrumbList>
+                                    </Breadcrumb>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <ThemeToggle />
+                                    <SignOut />
+                                </div>
                             </header>
                             <main className="flex flex-col p-4">
                                 {children}

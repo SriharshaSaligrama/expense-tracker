@@ -5,15 +5,15 @@ import { LogOut } from "lucide-react";
 export function SignOut() {
     const { signOut } = useAuthActions();
 
-    return (
-        <Button
-            className="flex-1 items-center cursor-pointer"
-            variant="secondary"
-            type="button"
-            onClick={() => void signOut()}
-        >
-            <LogOut />
-            Sign out
-        </Button>
+    return (<Button
+        className="gap-2 items-center cursor-pointer h-10"
+        variant="ghost"
+        size="icon"
+        type="button"
+        onClick={() => void signOut()}
+        title="Sign out"
+    >
+        <LogOut className="h-5 w-5" />
+    </Button>
     );
 }
