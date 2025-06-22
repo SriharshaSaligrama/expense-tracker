@@ -69,7 +69,7 @@ function RootDocument({ children }: Readonly<{ children: React.ReactNode }>) {
     const navigate = useNavigate();
 
     return (
-        <html lang="en">
+        <html lang="en" style={{ fontFamily: 'Nunito Sans, sans-serif' }}>
             <head>
                 <HeadContent />
             </head>

@@ -32,7 +32,7 @@ export function NavMain({
                             activeOptions={{ exact: true }}
                             className="flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent/40 hover:text-accent-foreground"
                         >
-                            <item.icon className=" mt-1 h-5 w-5" />
+                            <item.icon className="h-5 w-5" />
                             <span>{item.title}</span>
                         </Link>
                     </SidebarMenuButton>

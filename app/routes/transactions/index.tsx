@@ -12,7 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { debounce } from 'lodash';
-import { MoreVertical, Pencil, Trash2, X } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, X, LayoutGrid, Table as TableIcon, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { sentenceCase } from '@/lib/utils';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -51,6 +52,7 @@ function RouteComponent() {
     const [draftStartDate, setDraftStartDate] = useState<Date | undefined>(startDate ? new Date(startDate) : undefined);
     const [draftEndDate, setDraftEndDate] = useState<Date | undefined>(endDate ? new Date(endDate) : undefined);
     const [deleteId, setDeleteId] = useState<Id<"transactions"> | null>(null);
+    const [view, setView] = useState<'table' | 'grid'>('table');
 
     const deleteTransaction = useMutation(api.transactions.remove);
 
@@ -169,21 +171,39 @@ function RouteComponent() {
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Transactions (upto 31 days)</h1>
-                <Button
-                    onClick={() => navigate({
-                        to: '/transactions/add',
-                        search: {
-                            search: searchInput,
-                            type,
-                            date: undefined,
-                            startDate,
-                            endDate,
-                        }
-                    })}
-                    disabled={isPending}
-                >
-                    Add Transaction
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant={view === 'table' ? 'outline' : 'ghost'}
+                        size="icon"
+                        onClick={() => setView('table')}
+                        aria-label="Table view"
+                    >
+                        <TableIcon className={view === 'table' ? 'text-primary' : 'text-muted-foreground'} />
+                    </Button>
+                    <Button
+                        variant={view === 'grid' ? 'outline' : 'ghost'}
+                        size="icon"
+                        onClick={() => setView('grid')}
+                        aria-label="Grid view"
+                    >
+                        <LayoutGrid className={view === 'grid' ? 'text-primary' : 'text-muted-foreground'} />
+                    </Button>
+                    <Button
+                        onClick={() => navigate({
+                            to: '/transactions/add',
+                            search: {
+                                search: searchInput,
+                                type,
+                                date: undefined,
+                                startDate,
+                                endDate,
+                            }
+                        })}
+                        disabled={isPending}
+                    >
+                        Add Transaction
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-4">
@@ -263,7 +283,7 @@ function RouteComponent() {
                     <div className="text-center text-muted-foreground">Loading...</div>
                 ) : transactions.length === 0 ? (
                     <div className="text-center text-muted-foreground">No transactions found</div>
-                ) : (
+                ) : view === 'table' ? (
                     <div className="rounded-md border">
                         <Table>
                             <TableHeader>
@@ -280,8 +300,8 @@ function RouteComponent() {
                                 {transactions.map((transaction) => (
                                     <TableRow key={transaction._id}>
                                         <TableCell>{format(new Date(transaction.date), 'PP')}</TableCell>
-                                        <TableCell>{transaction.description}</TableCell>
-                                        <TableCell>{transaction.name}</TableCell>
+                                        <TableCell>{sentenceCase(transaction.description)}</TableCell>
+                                        <TableCell>{sentenceCase(transaction.name)}</TableCell>
                                         <TableCell>
                                             {formatCurrency(transaction.amount)}
                                         </TableCell>
@@ -321,6 +341,61 @@ function RouteComponent() {
                                 ))}
                             </TableBody>
                         </Table>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-4">
+                        {transactions.map((transaction) => (
+                            <div key={transaction._id} className="rounded-lg border bg-card shadow-sm p-4 w-full">
+                                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                                    {transaction.type === 'income' ? (
+                                        <span title="Income"><ArrowDownCircle className="h-4 w-4 text-green-600" /></span>
+                                    ) : (
+                                        <span title="Expense"><ArrowUpCircle className="h-4 w-4 text-red-600" /></span>
+                                    )}
+                                    <span>{format(new Date(transaction.date), 'PP')}</span>
+                                </div>
+                                <div className="flex items-center justify-between ">
+                                    <div className={`font-bold text-xl ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {formatCurrency(transaction.amount)}
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="text-muted-foreground hover:text-primary"
+                                            onClick={() => navigate({
+                                                to: '/transactions/edit/$id',
+                                                params: { id: transaction._id },
+                                                search: {
+                                                    search: searchInput,
+                                                    type,
+                                                    date: transaction.date,
+                                                    startDate,
+                                                    endDate,
+                                                }
+                                            })}
+                                            aria-label="Edit"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="text-destructive hover:text-destructive"
+                                            onClick={() => setDeleteId(transaction._id as Id<'transactions'>)}
+                                            aria-label="Delete"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <span className="font-semibold text-lg truncate">{sentenceCase(transaction.name)}</span>
+                                <div className="text-sm text-muted-foreground truncate mt-1">
+                                    {sentenceCase(transaction.description)}
+                                </div>
+
+                            </div>
+                        ))}
                     </div>
                 )}
 

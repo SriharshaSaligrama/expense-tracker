@@ -20,6 +20,30 @@ importers:
       '@convex-dev/react-query':
         specifier: 0.0.0-alpha.8
         version: 0.0.0-alpha.8(@tanstack/react-query@5.72.1(react@19.1.0))(convex@1.23.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
+      '@fontsource/inter':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@fontsource/lato':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@fontsource/nunito':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@fontsource/open-sans':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@fontsource/poppins':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@fontsource/roboto':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@fontsource/source-sans-pro':
+        specifier: ^5.2.5
+        version: 5.2.5
+      '@fontsource/work-sans':
+        specifier: ^5.2.6
+        version: 5.2.6
       '@oslojs/crypto':
         specifier: ^1.0.1
         version: 1.0.1
@@ -1191,6 +1215,30 @@ packages:
 
   '@floating-ui/utils@0.2.9':
     resolution: {integrity: sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg==}
+
+  '@fontsource/inter@5.2.6':
+    resolution: {integrity: sha512-CZs9S1CrjD0jPwsNy9W6j0BhsmRSQrgwlTNkgQXTsAeDRM42LBRLo3eo9gCzfH4GvV7zpyf78Ozfl773826csw==}
+
+  '@fontsource/lato@5.2.6':
+    resolution: {integrity: sha512-ykbyuHKHdFsV8QNWPgo2kkCV0veY8/w1HzPlTd7f08LRGGYijPoN7QHkVKPq5QLpgeNauPPe+0a6oRhd8b6MpQ==}
+
+  '@fontsource/nunito@5.2.6':
+    resolution: {integrity: sha512-FjSPmzBFZ3za4w2USmCWrxDaZ1fTWowSpV9DXfs7Ll/150BI48epE6E69MtOx8GqOPimHNkVUkES22lqDw+bug==}
+
+  '@fontsource/open-sans@5.2.6':
+    resolution: {integrity: sha512-mnfnUmBWQ+J220gqbibbzmKcc1kawV+lb3/Pspzu+Opnxza12oUffIg0ufG8g+3j1fnSznEWgyNV40MjtmJj6g==}
+
+  '@fontsource/poppins@5.2.6':
+    resolution: {integrity: sha512-NFr0121+vWCfzLDVvSZOzwAjRUaNj6QHA9gtUh/KHHoWf1Qn23EkwVFs63XZ6UtF5K1b3UNmCx77YEMGgV7BOQ==}
+
+  '@fontsource/roboto@5.2.6':
+    resolution: {integrity: sha512-hzarG7yAhMoP418smNgfY4fO7UmuUEm5JUtbxCoCcFHT0hOJB+d/qAEyoNjz7YkPU5OjM2LM8rJnW8hfm0JLaA==}
+
+  '@fontsource/source-sans-pro@5.2.5':
+    resolution: {integrity: sha512-ypendqc4pYUc+EgF7qqPY9iVYEz1t/Qr03VojKxG/2g3dnpHa1B6DOlDxWQjQXDj5QrG6inEqGT0g+edjALZyg==}
+
+  '@fontsource/work-sans@5.2.6':
+    resolution: {integrity: sha512-U0FOkIl84q01lIYWhGhiMjrQX0dT/gBthO8ahRzNrXHTBjjPjWmkwGeINNdv19x2IQhxAZT/2bVD9Izg9C+8gw==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -6436,6 +6484,22 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
 
   '@floating-ui/utils@0.2.9': {}
+
+  '@fontsource/inter@5.2.6': {}
+
+  '@fontsource/lato@5.2.6': {}
+
+  '@fontsource/nunito@5.2.6': {}
+
+  '@fontsource/open-sans@5.2.6': {}
+
+  '@fontsource/poppins@5.2.6': {}
+
+  '@fontsource/roboto@5.2.6': {}
+
+  '@fontsource/source-sans-pro@5.2.5': {}
+
+  '@fontsource/work-sans@5.2.6': {}
 
   '@humanfs/core@0.19.1': {}
 
