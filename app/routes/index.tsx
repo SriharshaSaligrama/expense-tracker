@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useQuery } from 'convex/react';
 import { format } from 'date-fns';
+import { sentenceCase } from '@/lib/utils';
 
 export const Route = createFileRoute('/')({
     component: Home,
@@ -162,11 +163,11 @@ function Home() {
                             )}
                             {recent5Transactions.map((t) => (
                                 <TableRow key={t._id}>
-                                    <TableCell>{t.name}</TableCell>
+                                    <TableCell>{sentenceCase(t.name)}</TableCell>
                                     <TableCell>₹{t.amount}</TableCell>
                                     <TableCell>{t.type.charAt(0).toUpperCase() + t.type.slice(1)}</TableCell>
                                     <TableCell>{new Date(t.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</TableCell>
-                                    <TableCell>{t.description}</TableCell>
+                                    <TableCell>{sentenceCase(t.description)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
