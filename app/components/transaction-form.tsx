@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useActionState, useState } from "react";
-import { transactionSchema } from "@/hooks/transaction-schema";
+import { transactionSchema } from "@/lib/transaction-schema";
 import { api } from "../../convex/_generated/api";
 import { useMutation } from "convex/react";
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
