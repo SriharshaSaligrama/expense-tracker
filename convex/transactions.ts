@@ -157,8 +157,11 @@ export const stats = query({
         const totalIncomeAmount = totalIncome.reduce((sum, txn) => sum + txn.amount, 0);
         const totalExpenseAmount = totalExpense.reduce((sum, txn) => sum + txn.amount, 0);
         const balanceAmount = totalIncomeAmount - totalExpenseAmount;
+        const total = totalIncomeAmount + totalExpenseAmount;
+        const incomePercentage = total === 0 ? 0 : (totalIncomeAmount / total) * 100;
+        const expensePercentage = total === 0 ? 0 : (totalExpenseAmount / total) * 100;
 
-        return { totalIncomeAmount, totalExpenseAmount, balanceAmount };
+        return { totalIncomeAmount, totalExpenseAmount, balanceAmount, incomePercentage, expensePercentage };
     }
 });
 

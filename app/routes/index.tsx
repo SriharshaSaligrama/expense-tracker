@@ -37,6 +37,8 @@ function Home() {
     const totalIncome = statistics?.totalIncomeAmount ?? 0;
     const totalExpense = statistics?.totalExpenseAmount ?? 0;
     const balance = statistics?.balanceAmount ?? 0;
+    const incomePercentage = statistics?.incomePercentage ?? 0;
+    const expensePercentage = statistics?.expensePercentage ?? 0;
 
     const recent5data = useQuery(api.transactions.listRecent5, {
         startDate: dateRange.startDate,
@@ -64,8 +66,8 @@ function Home() {
 
     // Pie chart data
     const pieData = [
-        { name: 'Income', value: totalIncome },
-        { name: 'Expense', value: totalExpense },
+        { name: `Income (${incomePercentage.toFixed(2)}%)`, value: totalIncome },
+        { name: `Expense (${expensePercentage.toFixed(2)}%)`, value: totalExpense },
     ];
     const COLORS = ['#22c55e', '#ef4444'];
 
