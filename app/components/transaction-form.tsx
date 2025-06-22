@@ -115,7 +115,21 @@ export function TransactionForm({
                     )}
                     <div className="flex gap-2 flex-row">
                         <Button type="submit" disabled={isPending} className="flex-1">{mode === "edit" ? "Update" : "Submit"}</Button>
-                        <Button type="button" variant="secondary" onClick={() => navigate({ to: '/transactions' })} disabled={isPending} className="flex-1">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => navigate({
+                                to: '/transactions',
+                                search: {
+                                    search,
+                                    type,
+                                    startDate,
+                                    endDate,
+                                },
+                            })}
+                            disabled={isPending}
+                            className="flex-1"
+                        >
                             Cancel
                         </Button>
                     </div>
