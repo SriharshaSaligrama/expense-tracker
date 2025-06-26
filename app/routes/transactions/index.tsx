@@ -7,6 +7,7 @@ import { TransactionGrid } from '@/components/transactions/transaction-grid';
 import { TransactionFilters } from '@/components/transactions/transaction-filters';
 import { TransactionDeleteDialog } from '@/components/transactions/transaction-delete-dialog';
 import { TransactionHeaderSection } from '@/components/transactions/transaction-header-section';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useHandleDates, useHandleSearch } from '@/hooks/use-transaction-filters';
 import { useDeleteTransaction } from '@/hooks/use-transaction-actions';
 import { SearchParams } from '@/types';
@@ -30,7 +31,11 @@ export const Route = createFileRoute('/transactions/')({
         startDate: typeof search.startDate === 'string' ? search.startDate : initialDateRange.startDate.toISOString(),
         endDate: typeof search.endDate === 'string' ? search.endDate : initialDateRange.endDate.toISOString(),
     }),
-    component: RouteComponent,
+    component: function () {
+        return <ErrorBoundary errorMessage="Oops, Something went wrong. Please try again later.">
+            <RouteComponent />
+        </ErrorBoundary>
+    },
 });
 
 function RouteComponent() {

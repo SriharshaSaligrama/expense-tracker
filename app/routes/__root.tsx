@@ -22,6 +22,7 @@ import { AppSidebar } from '@/components/layouts/app-sidebar';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { SignOut } from '@/components/auth/sign-out';
+import { Toaster } from 'sonner';
 
 export const Route = createRootRouteWithContext<{
     queryClient: QueryClient;
@@ -124,6 +125,7 @@ function RootDocument({ children }: Readonly<{ children: React.ReactNode }>) {
                     </SidebarProvider>
                 </Authenticated>
                 <Scripts />
+                <Toaster />
             </body>
         </html>
     );

@@ -12,6 +12,7 @@ import { api } from "../../../convex/_generated/api";
 import { useMutation } from "convex/react";
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Id } from "convex/_generated/dataModel";
+import { toast } from "sonner";
 
 const addRouteApi = getRouteApi('/transactions/add');
 const editRouteApi = getRouteApi('/transactions/edit/$id');
@@ -64,6 +65,8 @@ export function TransactionForm({
                 await createTransaction(parsed.data);
             }
 
+            toast.success("Transaction saved successfully");
+
             navigate({
                 to: '/transactions',
                 search: {
@@ -76,7 +79,8 @@ export function TransactionForm({
             return { error: "", success: true, transaction: parsed.data };
         } catch (err) {
             console.log('Failed to save transaction', { err });
-            return { error: err.message || "Failed to save transaction", success: false, transaction: parsed.data || values };
+            toast.error("Failed to save transaction");
+            return { error: "Failed to save transaction", success: false, transaction: parsed.data || values };
         }
     }
 

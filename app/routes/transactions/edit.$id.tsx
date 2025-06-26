@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export const Route = createFileRoute('/transactions/edit/$id')({
     validateSearch: (search) => ({
@@ -12,7 +13,11 @@ export const Route = createFileRoute('/transactions/edit/$id')({
         startDate: typeof search.startDate === 'string' ? search.startDate : undefined,
         endDate: typeof search.endDate === 'string' ? search.endDate : undefined,
     }),
-    component: RouteComponent,
+    component: function () {
+        return <ErrorBoundary errorMessage="Oops, No transaction found. The data you are looking for might have been deleted or does not exist.">
+            <RouteComponent />
+        </ErrorBoundary>
+    },
 });
 
 function RouteComponent() {
