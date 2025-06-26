@@ -7,7 +7,7 @@ import { FormErrorMessage } from "@/components/ui/form-error-message";
 import { VerifyReceivedCode } from "@/components/auth/verify-received-code";
 import { z } from "zod";
 import { EmailOtpSignIn } from "@/types";
-import { useValidator } from "@/hooks/validator";
+import { useValidator } from "@/hooks/use-validator";
 
 const initialState: EmailOtpSignIn = {
     error: "",

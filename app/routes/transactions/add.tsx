@@ -1,4 +1,4 @@
-import { TransactionForm } from '@/components/transaction-form'
+import { TransactionForm } from '@/components/transactions/transaction-form'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/transactions/add')({

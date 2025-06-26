@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useActionState, useState } from "react";
 import { transactionSchema } from "@/lib/transaction-schema";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { useMutation } from "convex/react";
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Id } from "convex/_generated/dataModel";
@@ -75,6 +75,7 @@ export function TransactionForm({
             });
             return { error: "", success: true, transaction: parsed.data };
         } catch (err) {
+            console.log('Failed to save transaction', { err });
             return { error: err.message || "Failed to save transaction", success: false, transaction: parsed.data || values };
         }
     }

@@ -18,7 +18,7 @@ import { SignInMethodDivider } from '@/components/auth/sign-in-method-divider';
 import { SendCodeToEmail } from '@/components/auth/send-code-to-email';
 import { SignInWithPassword } from '@/components/auth/sign-in-with-password';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
+import { AppSidebar } from '@/components/layouts/app-sidebar';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { SignOut } from '@/components/auth/sign-out';

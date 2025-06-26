@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FormErrorMessage } from "@/components/ui/form-error-message";
 import { z } from "zod";
 import { PasswordSignIn } from "@/types";
-import { useValidator } from "@/hooks/validator";
+import { useValidator } from "@/hooks/use-validator";
 
 const initialState: PasswordSignIn = {
     error: "",

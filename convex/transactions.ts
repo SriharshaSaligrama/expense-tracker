@@ -32,10 +32,12 @@ export const create = mutation({
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
+        const search_blob = `${args.name} ${args.description} ${args.amount}`;
         return await ctx.db.insert("transactions", {
             ...args,
             description: args.description ?? "",
             user: userId,
+            search_blob,
         });
     },
 });
@@ -171,6 +173,9 @@ export const remove = mutation({
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
+        const transaction = await ctx.db.get(args.id);
+        if (!transaction) throw new Error("Transaction not found");
+
         await ctx.db.delete(args.id);
         return true;
     },
@@ -189,12 +194,18 @@ export const update = mutation({
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
+        const transaction = await ctx.db.get(args.id);
+        if (!transaction) throw new Error("Transaction not found");
+
+        const search_blob = `${args.name} ${args.description} ${args.amount}`;
+
         await ctx.db.patch(args.id, {
             name: args.name,
             amount: args.amount,
             type: args.type,
             date: args.date,
             description: args.description ?? "",
+            search_blob,
         });
         return true;
     },
@@ -206,6 +217,8 @@ export const get = query({
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
-        return await ctx.db.get(args.id);
+        const transaction = await ctx.db.get(args.id);
+        if (!transaction) throw new Error("Transaction not found");
+        return transaction;
     },
 });

@@ -18,3 +18,10 @@ export type PasswordSignIn = {
     password: string;
     name?: string;
 };
+
+export type SearchParams = {
+    search?: string;
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+};

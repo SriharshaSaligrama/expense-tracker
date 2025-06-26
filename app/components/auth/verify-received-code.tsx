@@ -7,7 +7,7 @@ import { SubmitOTPForm } from "@/components/auth/submit-otp-form";
 import { FormErrorMessage } from "@/components/ui/form-error-message";
 import { z } from "zod";
 import { VerifyOTPEmail } from "@/types";
-import { useValidator } from "@/hooks/validator";
+import { useValidator } from "@/hooks/use-validator";
 
 const initialState: VerifyOTPEmail = {
     error: "",

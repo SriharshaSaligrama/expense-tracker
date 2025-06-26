@@ -1,32 +1,21 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useTransition, useState, useCallback, useEffect, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
-import { Id } from 'convex/_generated/dataModel';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { format } from 'date-fns';
-import { debounce } from 'lodash';
-import { MoreVertical, Pencil, Trash2, X, LayoutGrid, Table as TableIcon, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
-import { sentenceCase } from '@/lib/utils';
+import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from 'convex/_generated/api';
+import { TransactionTable } from '@/components/transactions/transaction-table';
+import { TransactionGrid } from '@/components/transactions/transaction-grid';
+import { TransactionFilters } from '@/components/transactions/transaction-filters';
+import { TransactionDeleteDialog } from '@/components/transactions/transaction-delete-dialog';
+import { TransactionHeaderSection } from '@/components/transactions/transaction-header-section';
+import { useHandleDates, useHandleSearch } from '@/hooks/use-transaction-filters';
+import { useDeleteTransaction } from '@/hooks/use-transaction-actions';
+import { SearchParams } from '@/types';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'INR'
     }).format(amount);
-};
-
-type SearchParams = {
-    search?: string;
-    type?: string;
-    startDate?: string;
-    endDate?: string;
 };
 
 const initialDateRange = {
@@ -45,76 +34,32 @@ export const Route = createFileRoute('/transactions/')({
 });
 
 function RouteComponent() {
-    const navigate = useNavigate();
     const { search: searchInput, type = 'all', startDate, endDate } = Route.useSearch();
-    const [isPending, startTransition] = useTransition();
-    const [searchValue, setSearchValue] = useState(searchInput ?? '');
-    const [draftStartDate, setDraftStartDate] = useState<Date | undefined>(startDate ? new Date(startDate) : undefined);
-    const [draftEndDate, setDraftEndDate] = useState<Date | undefined>(endDate ? new Date(endDate) : undefined);
-    const [deleteId, setDeleteId] = useState<Id<"transactions"> | null>(null);
+    const {
+        searchValue,
+        isPending,
+        handleSearch,
+        clearSearch,
+        updateSearchParams,
+    } = useHandleSearch({ searchInput });
+
+    const {
+        draftStartDate,
+        draftEndDate,
+        handleDateChange
+    } = useHandleDates({
+        startDate,
+        endDate,
+        updateSearchParams
+    });
+
+    const {
+        deleteId,
+        setDeleteId,
+        handleDelete
+    } = useDeleteTransaction();
+
     const [view, setView] = useState<'table' | 'grid'>('table');
-
-    const deleteTransaction = useMutation(api.transactions.remove);
-
-    const handleDelete = async () => {
-        if (!deleteId) return;
-        await deleteTransaction({ id: deleteId });
-        setDeleteId(null);
-    };
-
-    // Create a memoized debounced search function
-    const debouncedSearchNavigate = useMemo(
-        () =>
-            debounce((value: string) => {
-                startTransition(() => {
-                    navigate({
-                        to: '/transactions',
-                        search: (current) => ({
-                            ...current,
-                            search: value || undefined,
-                        }),
-                        replace: true
-                    });
-                });
-            }, 500),
-        [navigate]
-    );
-
-    useEffect(() => {
-        setDraftStartDate(startDate ? new Date(startDate) : undefined);
-        setDraftEndDate(endDate ? new Date(endDate) : undefined);
-    }, [startDate, endDate]);
-
-    // Cancel debounced search on unmount
-    useEffect(() => {
-
-        return () => {
-            debouncedSearchNavigate.cancel();
-        };
-    }, [debouncedSearchNavigate]);
-
-    const handleSearch = useCallback((value: string) => {
-        setSearchValue(value);
-        debouncedSearchNavigate(value.trim());
-    }, [debouncedSearchNavigate]);
-
-    const partialNavigate = useCallback((search: Partial<SearchParams> | ((current: SearchParams) => SearchParams)) => {
-        navigate({
-            to: '/transactions',
-            search,
-            replace: true
-        });
-    }, [navigate]);
-
-    const clearSearch = () => {
-        setSearchValue('');
-        startTransition(() => {
-            partialNavigate((current) => ({
-                ...current,
-                search: undefined,
-            }));
-        });
-    };
 
     const transactions = useQuery(api.transactions.list, {
         search: searchInput,
@@ -126,293 +71,64 @@ function RouteComponent() {
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
-    const updateSearchParams = (updates: Partial<SearchParams>) => {
-        const cleanedUpdates = { ...updates };
-        Object.keys(cleanedUpdates).forEach(key => {
-            if (cleanedUpdates[key as keyof typeof cleanedUpdates] === undefined) {
-                delete cleanedUpdates[key as keyof typeof cleanedUpdates];
-            }
-        });
-
-        startTransition(() => {
-            navigate({
-                to: '/transactions',
-                search: (current: Record<string, string | undefined>) => ({
-                    ...current,
-                    ...cleanedUpdates,
-                }),
-            });
-        });
-    };
-
-    const handleDateChange = (newStartDate: Date | undefined, newEndDate: Date | undefined) => {
-        if (newStartDate !== undefined) {
-            setDraftStartDate(newStartDate);
-            setDraftEndDate(undefined);
-            // Clear both dates from the URL when changing start date
-            updateSearchParams({
-                startDate: undefined,
-                endDate: undefined
-            });
-        }
-        if (newEndDate !== undefined) {
-            setDraftEndDate(newEndDate);
-            // Only update URL params when both dates are selected
-            if (draftStartDate) {
-                updateSearchParams({
-                    startDate: draftStartDate.toISOString(),
-                    endDate: newEndDate.toISOString(),
-                });
-            }
-        }
-    };
-
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Transactions (upto 31 days)</h1>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={view === 'table' ? 'outline' : 'ghost'}
-                        size="icon"
-                        onClick={() => setView('table')}
-                        aria-label="Table view"
-                    >
-                        <TableIcon className={view === 'table' ? 'text-primary' : 'text-muted-foreground'} />
-                    </Button>
-                    <Button
-                        variant={view === 'grid' ? 'outline' : 'ghost'}
-                        size="icon"
-                        onClick={() => setView('grid')}
-                        aria-label="Grid view"
-                    >
-                        <LayoutGrid className={view === 'grid' ? 'text-primary' : 'text-muted-foreground'} />
-                    </Button>
-                    <Button
-                        onClick={() => navigate({
-                            to: '/transactions/add',
-                            search: {
-                                search: searchInput,
-                                type,
-                                date: undefined,
-                                startDate,
-                                endDate,
-                            }
-                        })}
-                        disabled={isPending}
-                    >
-                        Add Transaction
-                    </Button>
-                </div>
-            </div>
+            <TransactionHeaderSection
+                view={view}
+                setView={setView}
+                searchInput={searchInput}
+                type={type}
+                startDate={startDate}
+                endDate={endDate}
+                isPending={isPending}
+            />
 
             <div className="space-y-4">
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-                    <h2 className="text-lg font-semibold leading-none tracking-tight mb-4 sm:hidden">
-                        Filters
-                    </h2>
-                    <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:gap-4">
-                        <Select
-                            value={type}
-                            onValueChange={(value) => updateSearchParams({ type: value })}
-                            disabled={isPending}                        >
-                            <SelectTrigger className="w-full sm:w-[150px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All</SelectItem>
-                                <SelectItem value="income">Income</SelectItem>
-                                <SelectItem value="expense">Expense</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                            <DatePicker
-                                value={draftStartDate}
-                                onChange={(date) => handleDateChange(date, undefined)}
-                                datePlaceholder="Start Date"
-                                disabled={isPending}
-                                className="w-full sm:w-auto"
-                            />
-                            <span className="block sm:inline mx-auto sm:mx-0">to</span>
-                            <DatePicker
-                                value={draftEndDate}
-                                onChange={(date) => handleDateChange(undefined, date)}
-                                datePlaceholder="End Date"
-                                minDate={draftStartDate ?? initialDateRange.startDate}
-                                maxDate={draftStartDate
-                                    ? new Date(Math.min(
-                                        new Date(draftStartDate.getTime() + 30 * 24 * 60 * 60 * 1000).getTime(),
-                                        today.getTime()
-                                    ))
-                                    : today
-                                }
-                                defaultMonth={draftStartDate
-                                    ? new Date(draftStartDate.getTime() + 15 * 24 * 60 * 60 * 1000)
-                                    : new Date()
-                                }
-                                disabled={isPending}
-                                className="w-full sm:w-auto"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 w-full">
-                            <div className="relative flex-1">
-                                <Input
-                                    className="pr-12 w-full"
-                                    placeholder="Search transactions by name, description or amount"
-                                    value={searchValue}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    disabled={isPending}
-                                />
-                                {searchValue && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                        onClick={clearSearch}
-                                        disabled={isPending}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <TransactionFilters
+                    type={type}
+                    updateSearchParams={updateSearchParams}
+                    isPending={isPending}
+                    draftStartDate={draftStartDate}
+                    draftEndDate={draftEndDate}
+                    handleDateChange={handleDateChange}
+                    initialDateRange={initialDateRange}
+                    searchValue={searchValue}
+                    handleSearch={handleSearch}
+                    clearSearch={clearSearch}
+                    today={today}
+                />
 
                 {isPending ? (
                     <div className="text-center text-muted-foreground">Loading...</div>
                 ) : transactions.length === 0 ? (
                     <div className="text-center text-muted-foreground">No transactions found</div>
                 ) : view === 'table' ? (
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead className="w-[50px]">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {transactions.map((transaction) => (
-                                    <TableRow key={transaction._id}>
-                                        <TableCell>{format(new Date(transaction.date), 'PP')}</TableCell>
-                                        <TableCell>{sentenceCase(transaction.description)}</TableCell>
-                                        <TableCell>{sentenceCase(transaction.name)}</TableCell>
-                                        <TableCell>
-                                            {formatCurrency(transaction.amount)}
-                                        </TableCell>
-                                        <TableCell className="capitalize">{transaction.type}</TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem className='flex items-center justify-between' onClick={() => {
-                                                        navigate({
-                                                            to: '/transactions/edit/$id',
-                                                            params: { id: transaction._id },
-                                                            search: {
-                                                                search: searchInput,
-                                                                type,
-                                                                date: transaction.date,
-                                                                startDate,
-                                                                endDate,
-                                                            }
-                                                        });
-                                                    }}>
-                                                        Edit
-                                                        <Pencil className="h-4 w-4" />
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className='flex items-center justify-between text-destructive' onClick={() => setDeleteId(transaction._id as Id<"transactions">)}>
-                                                        Delete
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                    <TransactionTable
+                        transactions={transactions}
+                        searchInput={searchValue}
+                        type={type}
+                        startDate={startDate}
+                        endDate={endDate}
+                        setDeleteId={setDeleteId}
+                        formatCurrency={formatCurrency}
+                    />
                 ) : (
-                    <div className="flex flex-col gap-4">
-                        {transactions.map((transaction) => (
-                            <div key={transaction._id} className="rounded-lg border bg-card shadow-sm p-4 w-full">
-                                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                                    {transaction.type === 'income' ? (
-                                        <span title="Income"><ArrowDownCircle className="h-4 w-4 text-green-600" /></span>
-                                    ) : (
-                                        <span title="Expense"><ArrowUpCircle className="h-4 w-4 text-red-600" /></span>
-                                    )}
-                                    <span>{format(new Date(transaction.date), 'PP')}</span>
-                                </div>
-                                <div className="flex items-center justify-between ">
-                                    <div className={`font-bold text-xl ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatCurrency(transaction.amount)}
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="text-muted-foreground hover:text-primary"
-                                            onClick={() => navigate({
-                                                to: '/transactions/edit/$id',
-                                                params: { id: transaction._id },
-                                                search: {
-                                                    search: searchInput,
-                                                    type,
-                                                    date: transaction.date,
-                                                    startDate,
-                                                    endDate,
-                                                }
-                                            })}
-                                            aria-label="Edit"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="text-destructive hover:text-destructive"
-                                            onClick={() => setDeleteId(transaction._id as Id<'transactions'>)}
-                                            aria-label="Delete"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                                <span className="font-semibold text-lg truncate">{sentenceCase(transaction.name)}</span>
-                                <div className="text-sm text-muted-foreground truncate mt-1">
-                                    {sentenceCase(transaction.description)}
-                                </div>
-
-                            </div>
-                        ))}
-                    </div>
+                    <TransactionGrid
+                        transactions={transactions}
+                        searchInput={searchValue}
+                        type={type}
+                        startDate={startDate}
+                        endDate={endDate}
+                        setDeleteId={setDeleteId}
+                        formatCurrency={formatCurrency}
+                    />
                 )}
 
-                <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-                    <DialogContent className="max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Are you sure to delete the transaction?</DialogTitle>
-                            <DialogDescription>
-                                This action cannot be undone. This will permanently remove this transaction data.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button type="button" variant="secondary" onClick={() => setDeleteId(null)}>Cancel</Button>
-                            <Button type="button" variant="destructive" onClick={handleDelete}>Delete</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <TransactionDeleteDialog
+                    deleteId={deleteId}
+                    setDeleteId={setDeleteId}
+                    handleDelete={handleDelete}
+                />
             </div>
         </div>
     );

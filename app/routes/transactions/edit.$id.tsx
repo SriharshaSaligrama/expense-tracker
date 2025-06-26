@@ -1,4 +1,4 @@
-import { TransactionForm } from '@/components/transaction-form';
+import { TransactionForm } from '@/components/transactions/transaction-form';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -19,7 +19,7 @@ function RouteComponent() {
     const { id } = Route.useParams();
     const { search: searchStr, type, date } = Route.useSearch();
     const transaction = useQuery(api.transactions.get, { id: id as Id<"transactions"> });
-    if (!transaction) {
+    if (transaction == null) {
         return <div className="p-8 text-center text-muted-foreground">Loading transaction...</div>;
     }
     return <TransactionForm mode="edit" id={id} initialValues={transaction} search={searchStr} type={type} date={date} />;
